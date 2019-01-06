@@ -1,5 +1,130 @@
-Ingrediends:
+Option Explicit
+'https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/platform-apis/ms774965(v=vs.85)
+'na ww. stronie: Functions -> URLDownloadToFile https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/platform-apis/ms775123%28v%3dvs.85%29
+'declarations for API functions can't belong to Subroutine, więc deklaruję funkcję poza Sub (nazwa nie musi być taka, jak na stronie)
+'c.d.: następnie podaję do jakiej biblioteki należy funkcja (lib "urlmon" - jesli bibl jest w syst Win, wystarczy zwykła nazwa, jak tutaj (nie musi być pełną nazwą))
+'podaję prawdziwą nazwę funkcji (na dole ww. strony z URLDownloadToFile, przy "Unicode and ANSI names", dla Win jest ANSI) i podaję ją jako alias "[nazwa funkcji]"
+'kopiuję kod C++ ze strony, wklejam go w nawiasy w funkcji i przystosowuję do VBA (pointers to string as string, reszta as long + return type dla całej funkcji as long (na końcu))
+'wszystkie zmienne w ww. kodzie deklaruję ByVal
+'dla Win64 Long zmieniam na LongPtr (będzie działało też dla Win32 i Office 2010 i wyżej)
+'deklaruję zmienne dla adresu URL strony i dla ścieżki pliku docelowego
+'przywołuję funkcję z parametrami 0 dla wszystkich argumentów, oprócz URL i ścieżki pliku docelowego
+'ww. funkcję owijam w if statement - inaczej nie będzie żadnego alertu, że coś nie poszło
+'Tools->References->Microsoft HTML Object Library zaznaczam
+'Tools->References->Microsoft XML, v.. zaznaczam najnowszą wersję
+'tworzę nowy Sub, który wysyła żądanie do strony
+'tworzę nowy Sub, który wyszukuje pliki do pobrania na stronie
+'
 
--pasta
--pesto
 
+#If VBA7 Then
+    Private Declare Function URLDownloadToFile Lib "urlmon" Alias "URLDownloadToFileA" ( _
+             ByVal pCaller As LongPtr, _
+             ByVal szURL As String, _
+             ByVal szFileName As String, _
+             ByVal dwReserved As LongPtr, _
+             ByVal lpfnCB As LongPtr) As LongPtr
+#Else
+    Private Declare Function URLDownloadToFile Lib "urlmon" Alias "URLDownloadToFileA" ( _
+             ByVal pCaller As Long, _
+             ByVal szURL As String, _
+             ByVal szFileName As String, _
+             ByVal dwReserved As Long, _
+             ByVal lpfnCB As Long) As Long
+#End If
+
+Public Const WolURL As String = "https://www.wiseowl.co.uk" 'Constructing the Complete URL 1/2
+Sub SND_downloadFiles()
+
+    Dim fileURL As String
+    Dim destinationFile As String
+    
+    fileURL = "https://www.wiseowl.co.uk/files/videos/excel-vba/Pt48%20-%20Scraping%20Multiple%20Web%20Pages.zip" 'sharepoint url address(link to "download the file" text on webpage
+    destinationFile = "G:\EXCEL\DBS\WiseOwl.zip" 'destination file path, including extension (folder path is not enough)
+    
+    If URLDownloadToFile(0, fileURL, destinationFile, 0, 0) = 0 Then
+        Debug.Print "File download started"
+    Else
+        Debug.Print "File download has not started"
+    End If
+    
+End Sub
+
+Sub loadWebPage()
+
+    Dim XMLReq As New MSXML2.XMLHTTP60
+    Dim vidPageURL As String
+    
+    vidPageURL = "https://www.wiseowl.co.uk/vba-macros/videos/vba-scrape-websites/scraping-multiple-web-pages/" 'nazwa całej strony
+    
+    XMLReq.Open "GET", vidPageURL, False  'False, żeby czekało aż znajdzie, zanim przejdzie do następnych kroków// stackoverflow: changing from GET to POST solved error problem
+    XMLReq.send  'do linii wyżej: za False jest miejsce na "Username" i "Password"
+    
+    If XMLReq.Status <> 200 Then
+        MsgBox "Problem" & vbNewLine & XMLReq.Status & " - " & XMLReq.statusText
+    End If
+
+    FindFileLink XMLReq.responseText  'to trigger the below Sub
+
+End Sub
+
+
+Sub FindFileLink(HTMLText As String)
+    
+    Dim HTMLDoc As New MSHTML.HTMLDocument 'to hold new HTML document
+    Dim Links As MSHTML.IHTMLElementCollection
+    Dim Link As MSHTML.IHTMLElement
+    Dim videoDiv As MSHTML.IHTMLElement
+    Dim fileLinkFound As Boolean
+    Dim fileURL As String
+    
+    HTMLDoc.body.innerHTML = HTMLText 'to populate the new blank document
+    
+    Set videoDiv = HTMLDoc.getElementsByClassName("woVideoShowPost")(0) '0 bo chcę tylko pierwszy element z kolekcji(klasy))
+    
+    Set Links = videoDiv.getElementsByTagName("a")
+    
+    'Debug.Print Links.Length 'usunięte później
+    fileLinkFound = False
+    
+    For Each Link In Links
+        If LCase(Link.getAttribute("title")) = "video files download" Then '"title" był w orginale
+            'Debug.Print Link.innerText, Link.getAttribute("href") 'wyłączone później
+            fileLinkFound = True
+            Exit For
+        End If
+    Next Link
+    
+    If Not fileLinkFound Then
+        Debug.Print "No file for this video"
+    Exit Sub
+    End If
+    
+'getting the filepath 1/1
+    fileURL = Link.getAttribute("href")
+    fileURL = Mid(fileURL, InStr(fileURL, ":") + 1)
+    fileURL = WolURL & fileURL 'Constructing the Complete URL 2/2
+    'Debug.Print fileURL 'wyłączone później
+    
+    SND_downloadFilesFromSP fileURL
+    
+End Sub
+
+
+Sub SND_downloadFilesFromSP(fileURL As String) 'Downloading the file (the whole Sub)
+
+
+    Dim destinationFile As String
+    
+    'fileURL = "https://www.wiseowl.co.uk/files/videos/excel-vba/Pt48%20-%20Scraping%20Multiple%20Web%20Pages.zip" 'usunięte później 'sharepoint url address(link to "download the file" text on webpage
+    destinationFile = Mid(fileURL, InStrRev(fileURL, "/")) 'Constructing a Destination File Name
+    destinationFile = Replace(destinationFile, "20%", " ") 'Constructing a Destination File Name
+    destinationFile = "G:\EXCEL\DBS\WiseOwl.zip" 'destination file path, including extension (folder path is not enough)
+    
+    If URLDownloadToFile(0, fileURL, destinationFile, 0, 0) = 0 Then
+        Debug.Print "File download started"
+    Else
+        Debug.Print "File download has not started"
+    End If
+    
+End Sub
