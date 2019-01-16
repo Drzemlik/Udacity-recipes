@@ -17,3 +17,56 @@ Directions:
  3. Stir, then cover and simmer over low heat for one hour.
  4. Mix the corn flour and 1/2 cup water in a small bowl.  Add to chili.
  5. Add the beans and simmer for 10 more minutes.
+
+
+
+Option Explicit
+
+Private Sub fixCSV()
+    Dim wrk As Workbook
+    Dim Sh As Worksheet
+    Dim i As Long
+    Dim lastRow, lastColumn As Long
+    Dim userColumn As Integer
+    
+    
+    Application.ScreenUpdating = False
+    
+    userColumn = InputBox("Input number of a column to move values to.", "First column to be fixed")
+    
+    lastRow = ActiveSheet.Cells(ActiveSheet.Rows.Count, "A").End(xlUp).Row
+    lastColumn = ActiveSheet.Cells(1, ActiveSheet.Columns.Count).End(xlToLeft).Column
+    
+    i = 2
+    
+    Do Until i = lastRow
+        
+        If ActiveSheet.Cells(i, lastColumn).Offset(0, 1).Value <> "" Then
+            If ActiveSheet.Cells(i, userColumn).Value = "" Then
+            
+                With ActiveSheet.Cells(i, userColumn)
+                
+                .Offset(0, 1).Resize(1, 40).Copy
+                .PasteSpecial (xlValues)
+                .EntireRow.Interior.ColorIndex = 6
+                
+                End With
+                
+                i = i + 1
+                
+            Else
+            
+                i = i + 1
+                
+            End If
+              
+        Else
+            
+        i = i + 1
+            
+        End If
+    Loop
+
+    Application.ScreenUpdating = True
+
+End Sub
