@@ -1,1 +1,96 @@
+Option Explicit
+
+Sub FixCSV()
+
+    Dim wrk As Workbook
+    Dim Sh As Worksheet
+    Dim findMatch, searchInColumn As Range
+    Dim i, j, lastRow, lastColumn As Long
+    Dim chooseFiles As Office.FileDialog
+    
+    
+    Set chooseFiles = Application.FileDialog(msoFileDialogFilePicker)
+    
+        With chooseFiles
+        
+            .AllowMultiSelect = True
+            .Title = "Please select the file."
+            '.Filters.CLEAR
+            '.Filters.Add "Excel 2007", ".csv"
+            '.Filters.Add Description:="All Files", Extensions:=".csv"
+            
+            If .Show = True Then
+                wrk = .SelectedItems(1)
+            End If
+        End With
+            
+        
+    For Each wrk In chooseFiles
+        
+        Application.ScreenUpdating = False
+            
+        lastRow = ActiveSheet.Cells(ActiveSheet.Rows.Count, "A").End(xlUp).Row
+        lastColumn = ActiveSheet.Cells(1, ActiveSheet.Columns.Count).End(xlToLeft).Column
+        
+        
+        i = 2
+        
+        Do Until i = lastRow
+            If ActiveSheet.Cells(i, lastColumn).Offset(0, 1).Value <> "" Then
+                
+                j = 2
+                
+                Do Until j = lastColumn
+                
+                Set searchInColumn = ActiveSheet.Cells(i, j).Offset(, -1).EntireColumn
+                Set findMatch = searchInColumn.Find(What:=ActiveSheet.Cells(i, j).Value)
+                    
+                    If findMatch Is Nothing Or ActiveSheet.Cells(i, j).Value = "" Then
+                    
+                        j = j + 1
+                        
+                    Else
+                    
+                        ActiveSheet.Cells(i, j).Resize(1, 50).Copy
+                        ActiveSheet.Cells(i, j - 1).PasteSpecial (xlValues)
+                        ActiveSheet.Cells(i, 1).Resize(1, lastColumn + 5).Interior.ColorIndex = 6
+                        
+                        j = j + 1
+                        
+                    End If
+                    
+                Loop
+                
+                i = i + 1
+                    
+            Else
+                
+            i = i + 1
+                
+            End If
+        Loop
+        
+        For Each i In ActiveSheet.Column("A")
+            If ActiveSheet.Cells(i, 1).Interior.Color = 6 Then
+                If ActiveSheet.Cells(i, lastColumn).Value = "" Then
+                
+                    MsgBox ("Open file: and check yellow rows. Values moved too far to the left - some of extreme right cells are empty.")
+                    
+                    Exit Sub
+                
+                ElseIf ActiveSheet.Cells(i, lastColumn + 1).Value <> "" Then
+                
+                    MsgBox ("Open file: and check yellow rows. Some of values to be corrected manually.")
+                    
+                    Exit Sub
+                    
+                End If
+            End If
+        Next
+    
+        Application.ScreenUpdating = True
+
+Next
+
+End Sub
 
