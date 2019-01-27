@@ -7,9 +7,15 @@ Sub FixCSV()
     Dim findMatch As Range, searchInColumn As Range
     Dim i As Long, j As Long, k As Long, lastRow As Long, lastColumn As Long
     Dim chosenFile As Integer
+    Dim xlFileName As String
     Dim chooseFiles As Office.FileDialog
+    Dim DictChanged, DictToBeDone As Object
+    
+    Set DictChanged = CreateObject("Scripting.Dictionary")
+    Set DictToBeDone = CreateObject("Scripting.Dictionary")
     
     Application.ScreenUpdating = False
+    
     
     Set chooseFiles = Application.FileDialog(msoFileDialogFilePicker)
     
@@ -19,50 +25,74 @@ Sub FixCSV()
             .Title = "Please select the file."
             .InitialFileName = "c:\"
             .InitialView = msoFileDialogViewList
-            '.Filters.Add "Excel 2007", ".csv"
-            '.Filters.Add Description:="All Files", Extensions:=".csv"
+            .Filters.Add "All", "*.*"
             
         End With
             
-     chosenFile = chooseFiles.Show
             
-            
-    If chosenFile = -1 Then
+    If chooseFiles.Show = -1 Then
         For k = 1 To chooseFiles.SelectedItems.Count
+            xlFileName = chooseFiles.SelectedItems(k)
             Workbooks.Open chooseFiles.SelectedItems(k)
             
+        
+            Set wrk = Workbooks.Open(xlFileName)
+            Set Sh = wrk.Worksheets(1)
                 
-            lastRow = ActiveSheet.Cells(ActiveSheet.Rows.Count, "A").End(xlUp).Row
-            lastColumn = ActiveSheet.Cells(1, ActiveSheet.Columns.Count).End(xlToLeft).Column
+                
+            If InStr(1, wrk.Name, ".csv") Then
+                
+                Sh.Range(Range("A1"), Range("A1").End(xlDown)).TextToColumns _
+                DataType:=xlDelimited, _
+                TextQualifier:=xlDoubleQuote, ConsecutiveDelimiter:=False, Tab:=False, _
+                Semicolon:=True, Comma:=True, Space:=False, Other:=False
+                
+            End If
+
+                
+            lastRow = Sh.Cells(Sh.Rows.Count, "A").End(xlUp).Row
+            lastColumn = Sh.Cells(1, Sh.Columns.Count).End(xlToLeft).Column
             
             
             i = 2
             
             Do Until i = lastRow
-                If ActiveSheet.Cells(i, lastColumn).Offset(0, 1).Value <> "" Then
+                If Sh.Cells(i, lastColumn).Offset(0, 1).Value <> "" Then
                     
                     j = 2
                     
-                    Do Until j = lastColumn
+                    Do Until j = lastColumn + 1
                     
-                    Set searchInColumn = ActiveSheet.Cells(i, j).Offset(, -1).EntireColumn
-                    Set findMatch = searchInColumn.Find(What:=ActiveSheet.Cells(i, j).Value)
+                    Set searchInColumn = Sh.Cells(i, j).Offset(, -1).EntireColumn
+                    Set findMatch = searchInColumn. _
+                        Find(What:=Sh.Cells(i, j), Lookat:=xlWhole, MatchCase:=True, searchformat:=True) '.Value
                         
-                        If ActiveSheet.Cells(i, lastColumn).Offset(0, 1).Value = "" Then
+                        If Sh.Cells(i, lastColumn).Offset(0, 1).Value = "" Then Exit Do
+                            
+                        If findMatch Is Nothing Or Sh.Cells(i, j).Value = "" Then
                         
                             j = j + 1
                             
-                        ElseIf findMatch Is Nothing Or ActiveSheet.Cells(i, j).Value = "" Then
+                        ElseIf Sh.Cells(i, j).Value = Sh.Cells(i, j - 1).Value Then
                         
                             j = j + 1
+                            
+                        ElseIf Sh.Cells(i, lastColumn).NumberFormat = "yyyy-mm-dd" Then
+                        
+                            If Sh.Cells(i, lastColumn).Offset(0, 1).NumberFormat = "yyyy-mm-dd" Then
+                            
+                                j = j + 1
+                            
+                            End If
                             
                         Else
                                
-                            If ActiveSheet.Cells(i, lastColumn).Offset(0, 1).Value <> "" Then
+                            If Sh.Cells(i, lastColumn).Offset(0, 1).Value <> "" Then
                                 
-                                ActiveSheet.Cells(i, j).Resize(1, 50).Copy
-                                ActiveSheet.Cells(i, j - 1).PasteSpecial (xlPasteAll)
-                                'ActiveSheet.Cells(i, 1).Resize(1, lastColumn + 5).Interior.ColorIndex = 6
+                                Sh.Cells(i, j).Resize(1, 50).Copy
+                                Sh.Cells(i, j - 1).PasteSpecial (xlPasteAll)
+                                Sh.Cells(i, 1).Resize(1, lastColumn + 5).Interior.ColorIndex = 6
+                                DictChanged.Item(wrk.Name) = vbNullString
                                 
                                 j = j + 1
                                 
@@ -82,10 +112,40 @@ Sub FixCSV()
                     
                 End If
             Loop
+            
+            
+        i = 1
+        
+        Do Until i = lastRow
+            
+            If Sh.Cells(i, lastColumn).Offset(0, 1).Value <> "" Then
+            
+                DictToBeDone.Item(wrk.Name) = vbNullString
+                
+            End If
+            
+            i = i + 1
+            
+        Loop
 
-        ActiveWorkbook.Close
+        wrk.Close 'savechanges:=true
         
         Next k
+    End If
+      
+
+    If DictChanged.Count > 0 Then
+        If DictToBeDone.Count > 0 Then
+        
+        MsgBox "Macro corrected the following files:" & vbLf & Join(DictChanged.Keys, vbLf) & vbLf _
+                & vbLf & "Files that still have values beyond the last column (to be corrected manually):" _
+                & vbLf & Join(DictToBeDone.Keys, vbLf) & vbLf
+                
+        Else
+        
+        MsgBox "Macro corrected the following files:" & vbLf & Join(DictChanged.Keys, vbLf) & vbLf
+        
+        End If
     End If
     
     Application.ScreenUpdating = True
