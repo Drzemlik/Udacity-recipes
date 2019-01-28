@@ -77,9 +77,14 @@ Sub FixCSV()
                         
                             j = j + 1
                             
-                        ElseIf Sh.Cells(i, lastColumn).NumberFormat = "yyyy-mm-dd" Then
+                        ElseIf VarType(Sh.Cells(i, j)) = 7 Then
                         
-                            If Sh.Cells(i, lastColumn).Offset(0, 1).NumberFormat = "yyyy-mm-dd" Then
+                            If VarType(Sh.Cells(i, j).Offset(0, 1)) = 7 Then
+                            
+                                j = j + 1
+                            
+                        
+                            ElseIf VarType(Sh.Cells(i, j).Offset(0, -1)) = 7 Then
                             
                                 j = j + 1
                             
@@ -128,7 +133,15 @@ Sub FixCSV()
             
         Loop
 
-        wrk.Close 'savechanges:=true
+        
+        If InStr(1, wrk.Name, ".csv") Then
+        
+            wrk.SaveAs FileName:=xlFileName, FileFormat:=xlCSV, Local:=True
+        
+        Else
+            wrk.Close 'savechanges:=true
+        
+        End If
         
         Next k
     End If
