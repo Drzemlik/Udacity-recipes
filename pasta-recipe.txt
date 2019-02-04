@@ -9,14 +9,13 @@ Sub FixCSV()
     Dim chosenFile As Integer
     Dim xlFileName As String
     Dim chooseFiles As Office.FileDialog
-    Dim DictChanged, DictToBeDone As Object
+    Dim DictChanged, DictToBeDone, DictYellowLine As Object
     
     Set DictChanged = CreateObject("Scripting.Dictionary")
     Set DictToBeDone = CreateObject("Scripting.Dictionary")
     
     Application.ScreenUpdating = False
-    
-    
+       
     Set chooseFiles = Application.FileDialog(msoFileDialogFilePicker)
     
         With chooseFiles
@@ -33,22 +32,22 @@ Sub FixCSV()
     If chooseFiles.Show = -1 Then
         For k = 1 To chooseFiles.SelectedItems.Count
             xlFileName = chooseFiles.SelectedItems(k)
-            Workbooks.Open chooseFiles.SelectedItems(k)
             
-        
-            Set wrk = Workbooks.Open(xlFileName)
-            Set Sh = wrk.Worksheets(1)
+                If InStr(1, xlFileName, ".csv") Then
+                    TmpFlName = path & "TmpCsv.txt"
+                    If Dir(TmpFlName) <> "" Then Kill TmpFlName
+                    FileCopy xlFileName, TmpFlName
+                    Workbooks.OpenText FileName:=TmpFlName, origin:= _
+                    1250, StartRow:=1, DataType:=xlDelimited, TextQualifier:=xlDoubleQuote, _
+                    ConsecutiveDelimiter:=False, Tab:=False, Semicolon:=True, Comma:=False _
+                    , Space:=False, Other:=False, TrailingMinusNumbers:=True, Local:=False
                 
-                
-            If InStr(1, wrk.Name, ".csv") Then
-                
-                Sh.Range(Range("A1"), Range("A1").End(xlDown)).TextToColumns _
-                DataType:=xlDelimited, _
-                TextQualifier:=xlDoubleQuote, ConsecutiveDelimiter:=False, Tab:=False, _
-                Semicolon:=True, Comma:=True, Space:=False, Other:=False
-                
-            End If
-
+                    Set wrk = Application.Workbooks("TmpCsv.txt")
+                    Set Sh = wrk.Worksheets(1)
+                Else
+                    Set wrk = Application.Workbooks.Open(xlFileName)
+                    Set Sh = wrk.Worksheets(1)
+                End If
                 
             lastRow = Sh.Cells(Sh.Rows.Count, "A").End(xlUp).Row
             lastColumn = Sh.Cells(1, Sh.Columns.Count).End(xlToLeft).Column
@@ -134,10 +133,16 @@ Sub FixCSV()
         Loop
 
         
-        If InStr(1, wrk.Name, ".csv") Then
-        
+        If InStr(1, wrk.Name, "TmpCsv.txt") Then
+             
             wrk.SaveAs FileName:=xlFileName, FileFormat:=xlCSV, Local:=True
-        
+            'Sh.Range(Range("A1"), Range("A1").End(xlDown)).TextToColumns _
+            'DataType:=xlDelimited, _
+            'TextQualifier:=xlDoubleQuote, ConsecutiveDelimiter:=False, Tab:=False, _
+            'Semicolon:=True, Comma:=False, Space:=False, Other:=False
+            wrk.Close False
+            'wrk.Close
+            Kill TmpFlName
         Else
             wrk.Close 'savechanges:=true
         
