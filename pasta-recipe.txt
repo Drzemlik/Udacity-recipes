@@ -1,111 +1,67 @@
-direct
 Option Explicit
 
-Sub SourceToDirectTAT()
 
-Dim DiTAT, sDirect, sDD As Worksheet
-Dim sDiTable, DiTATcell, sDiCell, DDcell As Range
-Dim DDEndNo As Integer
-Dim i, endi As Integer
-Dim j, k, DDLastRow As Integer
+Sub PERFtoWMA()
+
+Dim WMAtable, PERFdest, HPEsummary As Worksheet
+Dim PERFdestTables, HPEtable, WMAcell, PERFcell, WMAcell_0 As Range
+Dim i, j, endi As Integer
 
 
-endi = 33
+Set WMAtable = Workbooks(Dir("path_week_*.xlsx")).Worksheets("performance")
+Set PERFdest = Workbooks(Dir("path_Performance_report*.xlsb")).Worksheets("Destination country")
+Set HPEsummary = Workbooks(Dir("path_Performance_report*.xlsb")).Worksheets("HPE_summary")
+Set PERFdestTables = PERFdest.Range("A1:AS19")
 
-Set DiTAT = Workbooks(Dir("PATH\Weekly\WMA_HP_Enterprise_week_*.xlsx")).Worksheets("direct_tat_segmentation")
-Set sDirect = Workbooks(Dir("PATH\Weekly\source*.xlsb")).Worksheets("direct")
-Set sDD = Workbooks(Dir("PATH\Weekly\source*.xlsb")).Worksheets("dd")
 
-Set sDiTable = sDirect.Range("A1:K35")
-Set DDcell = DiTAT.Range(DiTAT.Range("O17"), DiTAT.Range("O17").End(xlDown))
-
-sDD.Range("A2:C20").Copy
-DiTAT.Range("O15").PasteSpecial (xlPasteValues)
-DiTAT.Range("O15:Q16").Copy
-        
-DDEndNo = WorksheetFunction.CountA(DiTAT.Range(DiTAT.Range("O15"), DiTAT.Range("O15").End(xlDown)))
-
-    For k = 1 To DDEndNo - 1
-        DDcell.Cells(k).PasteSpecial (xlPasteFormats)
-        k = k + 1
-    Next k
-    
-    
-For i = 1 To endi
+endi = WMAtable.Range("C16", WMAtable.Range("C16").End(xlDown)).Rows.Count - 1
    
-        Set DiTATcell = DiTAT.Range("C15:C40").Cells(i)
-        Set sDiCell = sDiTable.Find(What:=DiTATcell, LookIn:=xlValues, MatchCase:=True)
-        
-            If Not sDiCell Is Nothing Then
-    
-                With sDiCell
-                    .Offset(0, 1).Copy
-                    DiTATcell(j).Offset(1, 1).PasteSpecial (xlPasteValues)
-                    .Offset(0, 2).Copy
-                    DiTATcell(j).Offset(1, 2).PasteSpecial (xlPasteValues)
-                    .Offset(0, 3).Copy
-                    DiTATcell(j).Offset(1, 3).PasteSpecial (xlPasteValues)
-                    .Offset(0, 4).Copy
-                    DiTATcell(j).Offset(1, 5).PasteSpecial (xlPasteValues)
-                    .Offset(0, 5).Copy
-                    DiTATcell(j).Offset(1, 7).PasteSpecial (xlPasteValues)
-                    .Offset(0, 6).Copy
-                End With
-            
-            End If
-    
-        Next i
-
-End Sub
-
-groupage
-
-Option Explicit
-
-Sub SourceToGroupageTAT()
-
-
-Dim GrTAT As Worksheet
-Dim sGrTable, GrTATcell, sGrCell As Range
-
-endi = 23
-
-Set GrTAT = Workbooks(Dir("C:\Users\Rzeglarz\Desktop\Weekly\WMA_HP_Enterprise_week_*.xlsx")).Worksheets("groupage_tat_segmentation")
-Set SourceGR = Workbooks(Dir("C:\Users\Rzeglarz\Desktop\Weekly\source*.xlsb")).Worksheets("groupage")
-
-Set sGrTable = SourceGR.Range("A1:K35")
-
-    
    For i = 1 To endi
    
-   Set GrTATcell = GrTAT.Range("B16:B40").Cells(i)
-   Set sGrCell = sGrTable.Find(What:=GrTATcell, LookIn:=xlValues, MatchCase:=True)
+    Set WMAcell = WMAtable.Range("C16:c40").Cells(i)
+    Set PERFcell = PERFdestTables.Find(What:=WMAcell, LookIn:=xlValues, MatchCase:=True)
+    Set HPEtable = HPEsummary.Cells(21, 3)
 
 
-        If Not sGrCell Is Nothing Then
-    
-            With sGrCell
-                .Offset(0, 1).Copy
-                GrTATcell(j).Offset(1, 1).PasteSpecial (xlPasteValues)
-                .Offset(0, 2).Copy
-                GrTATcell(j).Offset(1, 2).PasteSpecial (xlPasteValues)
-                .Offset(0, 3).Copy
-                GrTATcell(j).Offset(1, 3).PasteSpecial (xlPasteValues)
-                .Offset(0, 4).Copy
-                GrTATcell(j).Offset(1, 5).PasteSpecial (xlPasteValues)
-                .Offset(0, 5).Copy
-                GrTATcell(j).Offset(1, 7).PasteSpecial (xlPasteValues)
-                .Offset(0, 6).Copy
-                GrTATcell(j).Offset(1, 9).PasteSpecial (xlPasteValues)
-                .Offset(0, 7).Copy
-                GrTATcell(j).Offset(1, 11).PasteSpecial (xlPasteValues)
-                
-            End With
-            
-       
+        If Not PERFcell Is Nothing Then
         
+            PERFcell.Offset(-15).Copy
+            WMAcell(j).Offset(1, 1).PasteSpecial (xlPasteValues)
+            PERFcell.Offset(-4).Copy
+            WMAcell(j).Offset(1, 2).PasteSpecial (xlPasteValues)
+            PERFcell.Offset(-3).Copy
+            WMAcell(j).Offset(1, 3).PasteSpecial (xlPasteValues)
+            PERFcell.Offset(-8).Copy
+            WMAcell(j).Offset(1, 5).PasteSpecial (xlPasteValues)
+            PERFcell.Offset(-10).Copy
+            WMAcell(j).Offset(1, 7).PasteSpecial (xlPasteValues)
+            PERFcell.Offset(-9).Copy
+            WMAcell(j).Offset(1, 8).PasteSpecial (xlPasteValues)
+                       
         End If
     
     Next i
+    
+WMAtable.Range("E16:K40").Replace What:="something went wrong", Replacement:="-"
+WMAtable.Range("E16:K40").Replace What:="something went worng", Replacement:="-"
+
+    
+    With HPEtable
+    
+        .Offset(-15).Copy
+        WMAtable.Cells(31, 4).PasteSpecial (xlPasteValues)
+        .Offset(-4).Copy
+        WMAtable.Cells(31, 5).PasteSpecial (xlPasteValues)
+        .Offset(-3).Copy
+        WMAtable.Cells(31, 6).PasteSpecial (xlPasteValues)
+        .Offset(-8).Copy
+        WMAtable.Cells(31, 8).PasteSpecial (xlPasteValues)
+        .Offset(-10).Copy
+        WMAtable.Cells(31, 10).PasteSpecial (xlPasteValues)
+        .Offset(-9).Copy
+        WMAtable.Cells(31, 11).PasteSpecial (xlPasteValues)
+            
+    End With
 
 End Sub
+
